@@ -1,0 +1,2 @@
+Refraction Test
+circle 150 200 20 light solid 500 0 0; circle 150 400 20 light solid 0 500 500; circle 300 300 100 glass 1.5 solid 500 500 500;

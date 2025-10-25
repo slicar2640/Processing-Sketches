@@ -9,7 +9,7 @@ class StickyParticle extends Particle {
   public void repelFrom(Particle other) {
     if(other instanceof StickyParticle && other != this && !stuck.contains((StickyParticle)other)) {
       if(pos.dist(other.pos) < manager.repelDist) {
-        manager.addStick(new StickyStick(this, (StickyParticle)other, manager.repelDist, 1, 1.5)); //1.15-1.25 works best
+        manager.addStick(new StickyStick(this, (StickyParticle)other, manager.repelDist, 1, 1.25)); //1.15-1.25 works best
       }
     }
     super.repelFrom(other);

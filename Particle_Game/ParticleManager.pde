@@ -1,8 +1,10 @@
 import java.lang.reflect.Constructor;
+import java.util.Iterator;
+
 class ParticleManager {
-  private ArrayList<ArrayList<Particle>> buckets = new ArrayList<>();
-  private ArrayList<ArrayList<Particle>> neighborBuckets = new ArrayList<>();
-  private ArrayList<Stick> sticks = new ArrayList<>();
+  private ArrayList<HashSet<Particle>> buckets = new ArrayList<>();
+  private ArrayList<HashSet<Particle>> neighborBuckets = new ArrayList<>();
+  private HashSet<Stick> sticks = new HashSet<>();
   public ArrayList<Particle> particlesToRemove = new ArrayList<>();
   public ArrayList<Particle> particlesToAdd = new ArrayList<>();
   public ArrayList<Stick> sticksToRemove = new ArrayList<>();
@@ -19,7 +21,7 @@ class ParticleManager {
     cols = floor(width / bucketSize);
     rows = floor(height / bucketSize);
     for (int i = 0; i < cols * rows; i++) {
-      buckets.add(new ArrayList<>());
+      buckets.add(new HashSet<>());
     }
     for (int i = 0; i < num; i++) {
       addParticle(random(width), random(height));
@@ -40,7 +42,7 @@ class ParticleManager {
   }
 
   private void updateParticles(float dt) {
-    for (ArrayList<Particle> bucket : buckets) {
+    for (HashSet<Particle> bucket : buckets) {
       for (Particle particle : bucket) {
         particle.update(dt);
       }
@@ -58,7 +60,7 @@ class ParticleManager {
   private void checkForChangedBuckets() {
     ArrayList<ArrayList<Particle>> toRemove = new ArrayList<>();
     for (int i = 0; i < buckets.size(); i++) {
-      ArrayList<Particle> bucket = buckets.get(i);
+      HashSet<Particle> bucket = buckets.get(i);
       toRemove.add(new ArrayList<>());
       for (Particle particle : bucket) {
         int bucketColumn = particle.bucketIndex % cols;
@@ -82,9 +84,9 @@ class ParticleManager {
 
   private void repelNeighbors() {
     neighborBuckets.clear();
-    for (ArrayList<Particle> bucket : buckets) {
+    for (HashSet<Particle> bucket : buckets) {
       for (Particle particle : bucket) {
-        ArrayList<Particle> neighbors = neighborParticles(particle.pos.x, particle.pos.y);
+        HashSet<Particle> neighbors = neighborParticles(particle.pos.x, particle.pos.y);
         for (Particle other : neighbors) {
           particle.repelFrom(other);
         }
@@ -96,16 +98,16 @@ class ParticleManager {
     particlesToAdd.clear();
   }
 
-  public ArrayList<Particle> neighborParticles(float x, float y) {
+  public HashSet<Particle> neighborParticles(float x, float y) {
     x = constrain(x, 0, width - 1);
     y = constrain(y, 0, height - 1);
-    int leftCol = floor((x - bucketSize / 2) / bucketSize);
-    int topRow = floor((y - bucketSize / 2) / bucketSize);
+    int leftCol = (int)((x - bucketSize / 2) / bucketSize);
+    int topRow = (int)((y - bucketSize / 2) / bucketSize);
     int neighborBucketIndex = leftCol + 1 + (topRow + 1) * cols;
     if (neighborBuckets.size() > neighborBucketIndex && neighborBuckets.get(neighborBucketIndex) != null) {
       return neighborBuckets.get(neighborBucketIndex);
     }
-    ArrayList<Particle> neighbors = new ArrayList<>();
+    HashSet<Particle> neighbors = new HashSet<>();
     for (int col = max(0, leftCol); col <= min(leftCol + 1, cols - 1); col++) {
       for (int row = max(0, topRow); row <= min(topRow + 1, rows - 1); row++) {
         int index = col + row * cols;
@@ -123,21 +125,38 @@ class ParticleManager {
     return neighbors;
   }
 
-  public ArrayList<Particle> getAllParticles() {
-    ArrayList<Particle> particles = new ArrayList<>();
-    for (ArrayList<Particle> bucket : buckets) {
+  public HashSet<Particle> getAllParticles() {
+    HashSet<Particle> particles = new HashSet<>();
+    for (HashSet<Particle> bucket : buckets) {
       particles.addAll(bucket);
+    }
+    return particles;
+  }
+
+  public HashSet<Particle> getParticlesInRange(float x1, float y1, float x2, float y2) {
+    HashSet<Particle> particles = new HashSet<>();
+    int minX = constrain((int)(x1/bucketSize), 0, cols - 1);
+    int maxX = constrain((int)(x2/bucketSize), 0, cols - 1);
+    int minY = constrain((int)(y1/bucketSize), 0, rows - 1);
+    int maxY = constrain((int)(y2/bucketSize), 0, rows - 1);
+    for (int i = minX; i <= maxX; i++) {
+      for (int j = minY; j <= maxY; j++) {
+        int index = i + j * cols;
+        particles.addAll(buckets.get(index));
+      }
     }
     return particles;
   }
 
   public Particle randomParticle() {
     if (numParticles == 0) return null;
-    ArrayList<Particle> bucket = buckets.get((int) random(buckets.size()));
-    while (bucket.size() == 0) {
-      bucket = buckets.get((int) random(buckets.size()));
+    HashSet allParts = getAllParticles();
+    int index = (int)(random(allParts.size()));
+    Iterator<Object> iter = allParts.iterator();
+    for (int i = 0; i < index; i++) {
+      iter.next();
     }
-    return bucket.get((int) random(bucket.size()));
+    return (Particle)iter.next();
   }
 
   public Stick addStick(Stick s) {
@@ -264,7 +283,7 @@ class ParticleManager {
         }
         if (i > 0) {
           addStick(new Stick(parts[i - 1][j], parts[i][j], spacing, stiffness));
-          if(j > 0) {
+          if (j > 0) {
             addStick(new Stick(parts[i - 1][j - 1], parts[i][j], spacing * SQRT2, stiffness));
           }
         }
@@ -343,7 +362,7 @@ class ParticleManager {
     for (Stick stick : sticks) {
       stick.show();
     }
-    for (ArrayList<Particle> bucket : buckets) {
+    for (HashSet<Particle> bucket : buckets) {
       for (Particle particle : bucket) {
         particle.show();
       }

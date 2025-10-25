@@ -11,21 +11,10 @@ class MouseInteractionManager {
 
   public void mouseDown() {
     currentInteraction.mouseDown();
-  //  PVector mousePos = new PVector(mouseX, mouseY);
-  //  switch(mode) {
-  //  case DELETE:
-  //    {
-  //      ArrayList<Particle> parts = particleManager.getAllParticles();
-  //      for (Particle p : parts) {
-  //        if (p.pos.dist(mousePos) < radii.get(mode)) {
-  //          particleManager.removeParticle(p);
-  //        }
-  //      }
-  //      break;
-  //    }
-  //  default:
-  //    break;
-  //  }
+  }
+  
+  public void mouseUp() {
+    currentInteraction.mouseUp();
   }
   
   public void updateScale(float delta) {

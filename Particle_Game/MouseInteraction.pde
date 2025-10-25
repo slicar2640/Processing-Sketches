@@ -3,6 +3,7 @@ import java.util.function.BiConsumer;
 interface MouseInteraction {
   public void mouseClick();
   public void mouseDown();
+  public void mouseUp();
   public void updateScale(float delta);
   public void updateCount(int delta);
   public void show();
@@ -16,22 +17,28 @@ class PushInteraction implements MouseInteraction {
   }
 
   public void mouseClick() {
-    mouseDown();
   }
 
   public void mouseDown() {
     PVector mousePos = new PVector(mouseX, mouseY);
-    ArrayList<Particle> parts = particleManager.getAllParticles();
+    HashSet<Particle> parts = particleManager.getParticlesInRange(mouseX - radius, mouseY - radius, mouseX + radius, mouseY + radius);
     for (Particle p : parts) {
       PVector diff = PVector.sub(p.pos, mousePos);
       float dis = diff.mag();
       if (dis < 0.01) return;
       if (dis < radius) {
-        PVector repulsion = diff.normalize()
-          .mult((1 - dis / radius) * strength);
-        p.applyForce(repulsion);
+        if (mouseButton == RIGHT) {
+          p.vel.mult(0.95);
+        } else {
+          PVector repulsion = diff.normalize()
+            .mult((1 - dis / radius) * strength);
+          p.applyForce(repulsion);
+        }
       }
     }
+  }
+  
+  public void mouseUp() {
   }
 
   public void updateScale(float delta) {
@@ -45,8 +52,9 @@ class PushInteraction implements MouseInteraction {
 
   public void show() {
     noFill();
-    stroke(0, 200, 0, 150);
-    strokeWeight(1);
+    float strong = 10;
+    stroke(map(strength, 0, -strong, 0, 255), map(strength, 0, strong, 0, 255), 0, 200);
+    strokeWeight(max(2, (abs(strength) - strong) / 3));
     circle(mouseX, mouseY, radius * 2);
   }
 }
@@ -63,12 +71,15 @@ class DeleteInteraction implements MouseInteraction {
 
   public void mouseDown() {
     PVector mousePos = new PVector(mouseX, mouseY);
-    ArrayList<Particle> parts = particleManager.getAllParticles();
+    HashSet<Particle> parts = particleManager.getParticlesInRange(mouseX - radius, mouseY - radius, mouseX + radius, mouseY + radius);
     for (Particle p : parts) {
       if (p.pos.dist(mousePos) < radius) {
         particleManager.removeParticle(p);
       }
     }
+  }
+  
+  public void mouseUp() {
   }
 
   public void updateScale(float delta) {
@@ -107,6 +118,9 @@ class AddParticleInteraction implements MouseInteraction {
     if (mouseButton == LEFT) {
       addParticle();
     }
+  }
+  
+  public void mouseUp() {
   }
 
   void addParticle() {
@@ -161,6 +175,9 @@ class AddConstructInteraction implements MouseInteraction {
 
   public void mouseDown() {
   }
+  
+  public void mouseUp() {
+  }
 
   public void updateScale(float delta) {
     scale += delta;
@@ -188,7 +205,7 @@ class AddStickInteraction implements MouseInteraction {
   }
 
   private Particle closestParticle() {
-    ArrayList<Particle> neighbors = particleManager.neighborParticles(mouseX, mouseY);
+    HashSet<Particle> neighbors = particleManager.neighborParticles(mouseX, mouseY);
     Particle closest = null;
     float closestDist = particleManager.repelDist;
     for (Particle p : neighbors) {
@@ -221,6 +238,9 @@ class AddStickInteraction implements MouseInteraction {
 
   public void mouseDown() {
   }
+  
+  public void mouseUp() {
+  }
 
   public void updateScale(float delta) {
     length += delta;
@@ -228,7 +248,7 @@ class AddStickInteraction implements MouseInteraction {
   }
 
   public void updateCount(int delta) {
-    stiffness += 0.1 * delta;
+    stiffness += 0.01 * delta;
     if (stiffness < 0) stiffness = 0;
   }
 
@@ -257,5 +277,91 @@ class AddStickInteraction implements MouseInteraction {
       strokeWeight(6);
       ellipse(closest.pos.x, closest.pos.y, 20, 20);
     }
+  }
+}
+
+class GrabInteraction implements MouseInteraction {
+  float strength;
+  HashSet<Particle> grabbedParticles = new HashSet<>();
+  public GrabInteraction(float strength) {
+    this.strength = strength;
+  }
+
+  private Particle closestParticle() {
+    HashSet<Particle> neighbors = particleManager.neighborParticles(mouseX, mouseY);
+    Particle closest = null;
+    float closestDist = particleManager.repelDist;
+    for (Particle p : neighbors) {
+      if (dist(p.pos.x, p.pos.y, mouseX, mouseY) < closestDist) {
+        closest = p;
+        closestDist = dist(p.pos.x, p.pos.y, mouseX, mouseY);
+      }
+    }
+    return closest;
+  }
+
+  public void mouseClick() {
+    Particle closest = closestParticle();
+    if (closest != null) {
+      if (grabbedParticles.isEmpty() || shiftPressed) {
+        grabbedParticles.add(closest);
+      } else if (ctrlPressed) {
+        if (grabbedParticles.contains(closest)) {
+          grabbedParticles.remove(closest);
+        } else {
+          grabbedParticles.add(closest);
+        }
+      } else if (altPressed) {
+        grabbedParticles.remove(closest);
+      }
+    }
+  }
+
+  public void mouseDown() {
+    if (!shiftPressed) {
+      PVector mousePos = new PVector(mouseX, mouseY);
+      for (Particle p : grabbedParticles) {
+        PVector diff = PVector.sub(mousePos, p.pos);
+        p.applyForce(diff.mult(strength));
+      }
+      if (mouseButton == RIGHT) {
+        for (Particle p : grabbedParticles) {
+          p.vel.mult(0.8);
+        }
+      }
+    }
+  }
+  
+  public void mouseUp() {
+    if(mouseButton == CENTER) {
+      grabbedParticles.clear();
+    }
+  }
+
+  public void updateScale(float delta) {
+    strength += delta / 150;
+  }
+
+  public void updateCount(int delta) {
+  }
+
+  public void show() {
+    for (Particle p : grabbedParticles) {
+      stroke(255, 80);
+      strokeWeight(5 + sin(frameCount / 15));
+      ellipse(p.pos.x, p.pos.y, 20, 20);
+    }
+
+    Particle closest = closestParticle();
+    if (closest != null) {
+      stroke(255, 30);
+      strokeWeight(6);
+      ellipse(closest.pos.x, closest.pos.y, 20, 20);
+    }
+
+    float strong = 0.1;
+    stroke(map(strength, 0, -strong, 0, 255), map(strength, 0, strong, 0, 255), 0);
+    strokeWeight(max(1.5, (abs(strength) - strong) * 4));
+    ellipse(mouseX, mouseY, 30, 30);
   }
 }

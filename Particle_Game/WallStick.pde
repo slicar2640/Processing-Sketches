@@ -1,6 +1,6 @@
 class WallStick extends Stick {
   boolean isStatic = false;
-  ArrayList<ArrayList<Particle>> intersectingBuckets = new ArrayList<>();
+  ArrayList<HashSet<Particle>> intersectingBuckets = new ArrayList<>();
   public WallStick(Particle p1, Particle p2) {
     super(p1, p2);
     isStatic = p1.isStatic && p2.isStatic;
@@ -32,7 +32,7 @@ class WallStick extends Stick {
       super.update();
       setIntersectingBuckets();
     }
-    for (ArrayList<Particle> bucket : intersectingBuckets) {
+    for (HashSet<Particle> bucket : intersectingBuckets) {
       for (Particle p : bucket) {
         PVector diff = shortestVectorToPoint(p.pos);
         if (diff != null && diff.mag() < manager.repelDist) {

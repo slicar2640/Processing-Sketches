@@ -5,7 +5,9 @@ final float SQRT3_2 = 0.86602540378;
 final float SQRT2 = 1.41421356237;
 boolean justExitedMenu = false;
 boolean paused = false;
-boolean shiftPressed = false;
+boolean shiftPressed = false, ctrlPressed = false, altPressed = false;
+ArrayList<String> millises = new ArrayList<>();
+int lastMillis = 0;
 
 void setup() {
   size(600, 600);
@@ -58,10 +60,15 @@ void mousePressed() {
 
 void mouseReleased() {
   justExitedMenu = false;
+  if(!menuManager.active) {
+    mouseManager.mouseUp();
+  }
 }
 
 void keyPressed() {
   if (keyCode == SHIFT) shiftPressed = true;
+  if (keyCode == CONTROL) ctrlPressed = true;
+  if (keyCode == ALT) altPressed = true;
   if (!menuManager.active) {
     switch(key) {
     case '1':
@@ -76,6 +83,9 @@ void keyPressed() {
     case '4':
       mouseManager.currentInteraction = addStickInteraction;
       addStickInteraction.p1 = null;
+      break;
+    case '5':
+      mouseManager.currentInteraction = new GrabInteraction(0.1);
       break;
     case '-':
       mouseManager.updateCount(-1);
@@ -92,6 +102,8 @@ void keyPressed() {
 
 void keyReleased() {
   if (keyCode == SHIFT) shiftPressed = false;
+  if (keyCode == CONTROL) ctrlPressed = false;
+  if (keyCode == ALT) altPressed = false;
 }
 
 int firstOddBefore(int x) {
